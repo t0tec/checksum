@@ -1,0 +1,2 @@
+# checksum
+First JavaFX application
