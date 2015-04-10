@@ -45,7 +45,7 @@ public class App extends Application {
   private ChecksumFunction selectedChecksumFunction;
 
   @Override
-  public void start(Stage primaryStage) throws Exception {
+  public void start(final Stage primaryStage) throws Exception {
     primaryStage.setTitle("Checksum application");
 
     GridPane grid = new GridPane();
@@ -107,6 +107,7 @@ public class App extends Application {
       public void handle(ActionEvent event) {
         if (fileNameTxtFld.getText().isEmpty()) {
           Alert alert = new Alert(Alert.AlertType.ERROR);
+          alert.initOwner(primaryStage);
           alert.setTitle("File name is empty!");
           alert.setContentText("No file is chosen! Click on File -> Open file.");
           alert.show();
@@ -115,6 +116,7 @@ public class App extends Application {
 
         if (checksumTxtFld.getText().isEmpty()) {
           Alert alert = new Alert(Alert.AlertType.ERROR);
+          alert.initOwner(primaryStage);
           alert.setTitle("Checksum is empty!");
           alert.setContentText("Please enter the valid checksum!");
           alert.show();
@@ -123,6 +125,7 @@ public class App extends Application {
 
         if (selectedChecksumFunction == null) {
           Alert alert = new Alert(Alert.AlertType.ERROR);
+          alert.initOwner(primaryStage);
           alert.setTitle("No checksum type selected!");
           alert.setContentText("Please select the type of the checksum!");
           alert.show();
@@ -133,6 +136,7 @@ public class App extends Application {
 
         if (!file.exists()) {
           Alert alert = new Alert(Alert.AlertType.ERROR);
+          alert.initOwner(primaryStage);
           alert.setTitle("File does not exist!");
           alert.setContentText("The given file does not exist!");
           alert.show();
@@ -142,12 +146,14 @@ public class App extends Application {
         if (selectedChecksumFunction.generate(file)
             .equalsIgnoreCase(checksumTxtFld.getText().trim())) {
           Alert alert = new Alert(Alert.AlertType.INFORMATION);
+          alert.initOwner(primaryStage);
           alert.setTitle("File is valid!");
           alert.setContentText("The file is valid! The checksums match each other!");
           alert.show();
           return;
         } else {
           Alert alert = new Alert(Alert.AlertType.ERROR);
+          alert.initOwner(primaryStage);
           alert.setTitle("File is not valid!");
           alert.setContentText("The file is not valid! The checksums do not match!");
           alert.show();
@@ -161,6 +167,7 @@ public class App extends Application {
       public void handle(ActionEvent event) {
         if (fileNameTxtFld.getText().isEmpty()) {
           Alert alert = new Alert(Alert.AlertType.ERROR);
+          alert.initOwner(primaryStage);
           alert.setTitle("File name is empty!");
           alert.setContentText("No file is chosen! Click on File -> Open file.");
           alert.show();
@@ -169,6 +176,7 @@ public class App extends Application {
 
         if (selectedChecksumFunction == null) {
           Alert alert = new Alert(Alert.AlertType.ERROR);
+          alert.initOwner(primaryStage);
           alert.setTitle("No checksum type selected!");
           alert.setContentText("Please select the type of the checksum!");
           alert.show();
@@ -179,6 +187,7 @@ public class App extends Application {
 
         if (!file.exists()) {
           Alert alert = new Alert(Alert.AlertType.ERROR);
+          alert.initOwner(primaryStage);
           alert.setTitle("File does not exist!");
           alert.setContentText("The given file does not exist!");
           alert.show();
@@ -234,12 +243,11 @@ public class App extends Application {
         dialog.initOwner(stage);
 
         VBox box = new VBox();
-        box.setAlignment(Pos.CENTER);
+        box.setAlignment(Pos.TOP_LEFT);
         box.setPadding(new Insets(10));
         box.getChildren().addAll(new Text("Developed by t0tec (t0tec.olmec@gmail.com)"));
-
         Scene myDialogScene = new Scene(box);
-
+        
         dialog.setTitle("About");
         dialog.setScene(myDialogScene);
         dialog.show();
