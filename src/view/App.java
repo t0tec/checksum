@@ -247,7 +247,7 @@ public class App extends Application {
         box.setPadding(new Insets(10));
         box.getChildren().addAll(new Text("Developed by t0tec (t0tec.olmec@gmail.com)"));
         Scene myDialogScene = new Scene(box);
-        
+
         dialog.setTitle("About");
         dialog.setScene(myDialogScene);
         dialog.show();
