@@ -6,6 +6,8 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -17,6 +19,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Toggle;
 import javafx.scene.input.DragEvent;
@@ -36,16 +39,22 @@ import model.ChecksumFunction;
 public class App extends Application {
 
   private static final ChecksumFunction[] CHECKSUM_TYPES =
-      {ChecksumFunction.MD5, ChecksumFunction.SHA1, ChecksumFunction.SHA256, ChecksumFunction.SHA512};
+      {ChecksumFunction.MD5, ChecksumFunction.SHA1, ChecksumFunction.SHA256,
+       ChecksumFunction.SHA512};
 
+  private Stage primaryStage;
   private MenuBar topMenu;
   private TextField fileNameTxtFld;
   private TextField checksumTxtFld;
+  private RadioBtnPanel radioBtnPanel;
+  private Button generateBtn;
+  private Button checkBtn;
 
   private ChecksumFunction selectedChecksumFunction;
 
   @Override
   public void start(final Stage primaryStage) throws Exception {
+    this.primaryStage = primaryStage;
     primaryStage.setTitle("Checksum application");
 
     GridPane grid = new GridPane();
@@ -66,13 +75,13 @@ public class App extends Application {
     checksumTxtFld = new TextField();
     grid.add(checksumTxtFld, 1, 2);
 
-    RadioBtnPanel radioBtnPanel = new RadioBtnPanel("Checksum type", CHECKSUM_TYPES);
+    radioBtnPanel = new RadioBtnPanel("Checksum type", CHECKSUM_TYPES);
     grid.add(radioBtnPanel, 1, 3);
 
-    Button checkBtn = new Button();
+    checkBtn = new Button();
     checkBtn.setText("Check");
 
-    Button generateBtn = new Button();
+    generateBtn = new Button();
     generateBtn.setText("Generate");
 
     BorderPane root = new BorderPane();
@@ -91,7 +100,7 @@ public class App extends Application {
     grid.add(hbCheckBtn, 1, 4);
     root.setCenter(mainContainer);
 
-    Scene scene = new Scene(root, 500, 250);
+    final Scene scene = new Scene(root, 500, 250);
     scene.getStylesheets().add("/style/main.css");
 
     radioBtnPanel.addListener(new ChangeListener<Toggle>() {
@@ -132,7 +141,7 @@ public class App extends Application {
           return;
         }
 
-        File file = new File(fileNameTxtFld.getText().trim());
+        final File file = new File(fileNameTxtFld.getText().trim());
 
         if (!file.exists()) {
           Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -143,22 +152,37 @@ public class App extends Application {
           return;
         }
 
-        if (selectedChecksumFunction.generate(file)
-            .equalsIgnoreCase(checksumTxtFld.getText().trim())) {
-          Alert alert = new Alert(Alert.AlertType.INFORMATION);
-          alert.initOwner(primaryStage);
-          alert.setTitle("File is valid!");
-          alert.setContentText("The file is valid! The checksums match each other!");
-          alert.show();
-          return;
-        } else {
-          Alert alert = new Alert(Alert.AlertType.ERROR);
-          alert.initOwner(primaryStage);
-          alert.setTitle("File is not valid!");
-          alert.setContentText("The file is not valid! The checksums do not match!");
-          alert.show();
-          return;
-        }
+        final Task<Boolean> task = checkTask(file);
+
+        new Thread(task).start();
+
+        task.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+          @Override
+          public void handle(WorkerStateEvent event) {
+            for (Toggle t : radioBtnPanel.getChoices().getToggles()) {
+              if (t instanceof RadioButton) {
+                ((RadioButton) t).setDisable(false);
+              }
+            }
+
+            generateBtn.setDisable(false);
+            checkBtn.setDisable(false);
+
+            if (task.getValue()) {
+              Alert alert = new Alert(Alert.AlertType.INFORMATION);
+              alert.initOwner(primaryStage);
+              alert.setTitle("File is valid!");
+              alert.setContentText("The file is valid! The checksums match each other!");
+              alert.show();
+            } else {
+              Alert alert = new Alert(Alert.AlertType.ERROR);
+              alert.initOwner(primaryStage);
+              alert.setTitle("File is not valid!");
+              alert.setContentText("The file is not valid! The checksums do not match!");
+              alert.show();
+            }
+          }
+        });
       }
     });
 
@@ -183,7 +207,7 @@ public class App extends Application {
           return;
         }
 
-        File file = new File(fileNameTxtFld.getText().trim());
+        final File file = new File(fileNameTxtFld.getText().trim());
 
         if (!file.exists()) {
           Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -194,7 +218,23 @@ public class App extends Application {
           return;
         }
 
-        checksumTxtFld.setText(selectedChecksumFunction.generate(file));
+        Task<Void> task = generateTask(file);
+
+        new Thread(task).start();
+
+        task.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+          @Override
+          public void handle(WorkerStateEvent event) {
+            for (Toggle t : radioBtnPanel.getChoices().getToggles()) {
+              if (t instanceof RadioButton) {
+                ((RadioButton) t).setDisable(false);
+              }
+            }
+
+            generateBtn.setDisable(false);
+            checkBtn.setDisable(false);
+          }
+        });
       }
     });
 
@@ -258,6 +298,50 @@ public class App extends Application {
     helpMenu.getItems().add(about);
 
     topMenu.getMenus().addAll(fileMenu, helpMenu);
+  }
+
+  public Task<Void> generateTask(final File file) {
+    return new Task<Void>() {
+      @Override
+      protected Void call() {
+        for (Toggle t : radioBtnPanel.getChoices().getToggles()) {
+          if (t instanceof RadioButton) {
+            ((RadioButton) t).setDisable(true);
+          }
+        }
+
+        generateBtn.setDisable(true);
+        checkBtn.setDisable(true);
+
+        checksumTxtFld.setText(selectedChecksumFunction.generate(file));
+
+        return null;
+      }
+    };
+  }
+
+
+  public Task<Boolean> checkTask(final File file) {
+    return new Task<Boolean>() {
+      @Override
+      protected Boolean call() {
+        for (Toggle t : radioBtnPanel.getChoices().getToggles()) {
+          if (t instanceof RadioButton) {
+            ((RadioButton) t).setDisable(true);
+          }
+        }
+
+        generateBtn.setDisable(true);
+        checkBtn.setDisable(true);
+
+        if (selectedChecksumFunction.generate(file)
+            .equalsIgnoreCase(checksumTxtFld.getText().trim())) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+    };
   }
 
   private MenuItem createMenuItem(String text, String keyCombination) {

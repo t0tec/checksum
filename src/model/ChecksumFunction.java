@@ -2,6 +2,8 @@ package model;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 
 import javax.xml.bind.DatatypeConverter;
@@ -22,18 +24,22 @@ public enum ChecksumFunction {
     return name;
   }
 
-  public String generate(File input) {
-    try (FileInputStream in = new FileInputStream(input)) {
+  public String generate(File file) {
+    try (FileInputStream inputStream = new FileInputStream(file)) {
       MessageDigest messageDigest = MessageDigest.getInstance(this.getName());
-      byte[] block = new byte[2048];
-      int length;
-      while ((length = in.read(block)) > 0) {
-        messageDigest.update(block, 0, length);
+
+      FileChannel channel = inputStream.getChannel();
+      int bufferSize = (int)Math.min(file.length(), 4 * 1024 * 1024);
+      ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+      while (channel.read(buffer) != -1) {
+        buffer.flip();
+        messageDigest.update(buffer);
+        buffer.clear();
       }
 
       return toHexadecimalFormat(messageDigest.digest());
-    } catch (Exception e) {
-      e.printStackTrace();
+    } catch (Exception ex) {
+      ex.printStackTrace();
       return null;
     }
   }

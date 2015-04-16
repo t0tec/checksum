@@ -32,4 +32,8 @@ public class RadioBtnPanel extends TitlePanel {
   public void addListener(ChangeListener<Toggle> cl) {
     choices.selectedToggleProperty().addListener(cl);
   }
+
+  public ToggleGroup getChoices() {
+    return this.choices;
+  }
 }
